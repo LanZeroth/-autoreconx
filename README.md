@@ -1,0 +1,2 @@
+# -autoreconx
+ autoreconx simple test
