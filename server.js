@@ -6,7 +6,7 @@ const { formatFindings } = require("./reporting/formatter");
 const { exportJson } = require("./reporting/exporter");
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
@@ -117,5 +117,5 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`AutoReconX running on http://localhost:${PORT}`);
+  console.log(`AutoReconX running on port ${PORT}`);
 });
