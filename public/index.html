@@ -10,21 +10,17 @@
   <div class="container">
     <header class="hero">
       <h1>AutoReconX</h1>
-      <p>Lightweight vulnerability scanner for authorized public demo targets.</p>
+      <p>Lightweight vulnerability scanner for local demo targets.</p>
     </header>
 
     <section class="card">
       <label for="targetInput">Target URL</label>
       <div class="row">
-        <input
-          id="targetInput"
-          type="url"
-          placeholder="https://your-demo-target.onrender.com"
-        />
+        <input id="targetInput" type="text" value="http://localhost:4001" />
         <button id="scanBtn">Start Scan</button>
         <button id="exportBtn" disabled>Export JSON</button>
       </div>
-      <small>Use an authorized public demo URL for testing.</small>
+      <small>Use the local demo target for safe testing.</small>
     </section>
 
     <section class="card">
