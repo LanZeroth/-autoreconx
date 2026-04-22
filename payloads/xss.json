@@ -1,0 +1,6 @@
+{
+  "markers": [
+    "AUTORECONX_XSS_TEST",
+    "\"><script>alert('AUTORECONX')</script>"
+  ]
+}

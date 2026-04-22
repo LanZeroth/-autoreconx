@@ -1,0 +1,19 @@
+{
+  "name": "autoreconx",
+  "version": "1.0.0",
+  "description": "Lightweight local vulnerability scanner demo",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "demo-target": "node demo-target/vulnerable-app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "axios": "^1.13.1",
+    "cheerio": "^1.1.2",
+    "express": "^5.1.0"
+  }
+}

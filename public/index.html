@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AutoReconX</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="hero">
+      <h1>AutoReconX</h1>
+      <p>Lightweight vulnerability scanner for local demo targets.</p>
+    </header>
+
+    <section class="card">
+      <label for="targetInput">Target URL</label>
+      <div class="row">
+        <input id="targetInput" type="text" value="http://localhost:4001" />
+        <button id="scanBtn">Start Scan</button>
+        <button id="exportBtn" disabled>Export JSON</button>
+      </div>
+      <small>Use the local demo target for safe testing.</small>
+    </section>
+
+    <section class="card">
+      <div class="row between">
+        <h2>Scan Progress</h2>
+        <span id="progressText">Idle</span>
+      </div>
+      <div class="progress-bar">
+        <div id="progressFill" class="progress-fill"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row between">
+        <h2>Findings</h2>
+        <span id="findingCount">0 results</span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Endpoint</th>
+              <th>Payload</th>
+              <th>Snippet</th>
+              <th>Severity</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody">
+            <tr>
+              <td colspan="5" class="empty">No scan results yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+{
+  "numericOffsets": [-1, 1, 2],
+  "commonParams": ["id", "userId", "accountId", "profileId"]
+}

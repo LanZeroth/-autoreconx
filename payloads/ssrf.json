@@ -1,0 +1,7 @@
+{
+  "urls": [
+    "http://127.0.0.1:4001/internal",
+    "http://localhost:4001/internal"
+  ],
+  "commonParams": ["url", "image", "feed", "callback", "redirect"]
+}

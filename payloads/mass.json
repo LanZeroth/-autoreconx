@@ -1,0 +1,7 @@
+{
+  "extraFields": {
+    "isAdmin": true,
+    "role": "admin",
+    "tier": "enterprise"
+  }
+}
