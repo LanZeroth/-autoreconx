@@ -12,7 +12,7 @@ AutoReconX is a lightweight web-based scanner built for safe local testing. It i
 
 ![AutoReconX Dashboard](images/autoreconx-dashboard.png)
 
-## Online Vulnerability
+## Online Version
 [https://autoreconx.onrender.com](https://autoreconx.onrender.com)
 
 The UI lets you enter a target URL, launch a scan, monitor progress, and review findings in a simple dashboard.
@@ -51,7 +51,7 @@ The app should start on:
 http://localhost:3000
 ```
 
-## Run the Demo Target
+## Run the Demo Target (Optional)
 
 Open a second terminal and start the local demo target:
 
