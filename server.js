@@ -61,6 +61,47 @@ function buildFallbackReply(message, findings = [], targetUrl = "") {
   return `I can help explain findings, summarize scans, suggest remediation, or troubleshoot the local demo target. Try asking: "Why did I get 0 findings?" or "Summarize this scan."`;
 }
 
+function buildReportDraft(findings = [], targetUrl = "", notes = "") {
+  const first = findings[0] || {};
+  const vulnerability = first.vulnerability || "Potential web vulnerability";
+  const endpoint = first.endpoint || targetUrl || "[affected endpoint]";
+  const payload = first.payload || "[observed input]";
+  const snippet = first.responseSnippet || "[relevant response snippet]";
+  const severity = first.severity || "Medium";
+
+  return `## Title
+${vulnerability} in ${endpoint}
+
+## Weakness
+${vulnerability}
+
+## Severity
+Estimated severity: ${severity}
+
+## Summary
+A potential ${vulnerability.toLowerCase()} was identified in ${endpoint} during testing of ${targetUrl || "the target application"}. The behavior suggests the application may process unsafe input in a way that could expose users or backend functionality to unintended risk.
+
+## Steps To Reproduce
+1. Start AutoReconX locally and ensure the demo target or tested application is reachable.
+2. Enter the target URL: ${targetUrl || "[target URL]"}.
+3. Run a scan and wait for completion.
+4. Review the finding associated with endpoint: ${endpoint}.
+5. Observe the payload and response behavior shown in the results table.
+
+## Supporting Material / References
+- Target URL: ${targetUrl || "[target URL]"}
+- Endpoint: ${endpoint}
+- Payload observed: ${payload}
+- Response snippet: ${snippet}
+- Additional notes: ${notes || "[add screenshots, request/response logs, or screen recordings here]"}
+
+## Impact
+An attacker may be able to exploit unsafe input handling at ${endpoint}, depending on how the affected code path is used in production. The security impact could include unauthorized client-side script execution, input reflection, or other unsafe processing behavior, depending on the exact root cause and surrounding controls.
+
+## Remediation Notes
+Validate and sanitize untrusted input on the server side, apply context-appropriate output encoding, and retest the affected endpoint after fixes are deployed.`;
+}
+
 app.post("/api/scan", async (req, res) => {
   try {
     const { target } = req.body;
@@ -189,6 +230,82 @@ Keep answers concise, practical, and safe.
     console.error("Chat route error:", err);
     res.json({
       reply: "The assistant is temporarily unavailable. Try asking about scan summary, remediation, or the local demo target.",
+      mode: "fallback"
+    });
+  }
+});
+
+app.post("/api/report-draft", async (req, res) => {
+  try {
+    const { findings, targetUrl, notes } = req.body || {};
+    const safeFindings = Array.isArray(findings) ? findings.slice(0, 10) : [];
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    if (!apiKey) {
+      return res.json({
+        report: buildReportDraft(safeFindings, targetUrl, notes),
+        mode: "fallback"
+      });
+    }
+
+    const systemPrompt = `
+You are AutoReconX Report Assistant.
+Generate a professional vulnerability report draft in a HackerOne-style format.
+Focus on:
+- clear title
+- weakness type
+- severity estimate
+- concise summary
+- reproducible validation steps
+- supporting material placeholders
+- realistic impact
+- remediation notes
+Do not invent proof that is not present.
+Do not provide exploit payloads or offensive instructions.
+Use cautious language such as "potential", "observed", and "may" when certainty is limited.
+Return Markdown only.
+    `.trim();
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 0.2,
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: `Generate a vulnerability report draft from this context: ${JSON.stringify({
+              targetUrl: targetUrl || "",
+              findings: safeFindings,
+              notes: notes || ""
+            })}`
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      return res.json({
+        report: buildReportDraft(safeFindings, targetUrl, notes),
+        mode: "fallback"
+      });
+    }
+
+    const data = await response.json();
+    const report =
+      data?.choices?.[0]?.message?.content ||
+      buildReportDraft(safeFindings, targetUrl, notes);
+
+    res.json({ report, mode: "llm" });
+  } catch (err) {
+    console.error("Report draft route error:", err);
+    res.json({
+      report: buildReportDraft([], "", ""),
       mode: "fallback"
     });
   }

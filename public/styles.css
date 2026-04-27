@@ -54,14 +54,20 @@ label {
   font-weight: bold;
 }
 
-input {
-  flex: 1;
-  min-width: 280px;
+input,
+textarea {
+  width: 100%;
   padding: 12px;
   border-radius: 10px;
   border: 1px solid #475569;
   background: #0f172a;
   color: #e2e8f0;
+  font: inherit;
+}
+
+input {
+  flex: 1;
+  min-width: 280px;
 }
 
 button {
@@ -150,7 +156,8 @@ td {
   font-weight: bold;
 }
 
-.assistant-panel {
+.assistant-panel,
+.report-panel {
   border: 1px solid #3b4b67;
 }
 
@@ -242,6 +249,31 @@ td {
 
 .chat-form button:hover {
   background: #16a34a;
+}
+
+.report-notes,
+.report-output {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #475569;
+  background: #0b1220;
+  color: #e2e8f0;
+  resize: vertical;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.report-output {
+  min-height: 320px;
+}
+
+.report-notes:focus,
+.report-output:focus,
+input:focus {
+  outline: 2px solid #38bdf8;
+  outline-offset: 1px;
 }
 
 @media (max-width: 700px) {

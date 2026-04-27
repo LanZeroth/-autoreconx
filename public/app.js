@@ -17,6 +17,11 @@ const chatInput = document.getElementById("chatInput");
 const chatMessages = document.getElementById("chatMessages");
 const chips = document.querySelectorAll(".chip");
 
+const generateReportBtn = document.getElementById("generateReportBtn");
+const copyReportBtn = document.getElementById("copyReportBtn");
+const reportNotes = document.getElementById("reportNotes");
+const reportOutput = document.getElementById("reportOutput");
+
 scanBtn.addEventListener("click", async () => {
   const target = targetInput.value.trim();
 
@@ -60,6 +65,9 @@ function resetUI() {
   progressText.textContent = "Starting...";
   findingCount.textContent = "0 results";
   resultsBody.innerHTML = `<tr><td colspan="5" class="empty">Scan in progress...</td></tr>`;
+
+  if (reportOutput) reportOutput.value = "";
+  if (copyReportBtn) copyReportBtn.disabled = true;
 }
 
 function startPolling() {
@@ -157,6 +165,58 @@ async function sendChatMessage(message) {
   }
 }
 
+async function generateReportDraft() {
+  if (!reportOutput) return;
+
+  reportOutput.value = "Generating report draft...";
+  if (copyReportBtn) copyReportBtn.disabled = true;
+
+  try {
+    const res = await fetch("/api/report-draft", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        findings: window.latestFindings || [],
+        targetUrl: window.latestTargetUrl || targetInput.value.trim(),
+        notes: reportNotes ? reportNotes.value.trim() : ""
+      })
+    });
+
+    const data = await res.json();
+    reportOutput.value = data.report || "No report draft returned.";
+
+    if (copyReportBtn && reportOutput.value.trim()) {
+      copyReportBtn.disabled = false;
+    }
+  } catch (err) {
+    console.error(err);
+    reportOutput.value = "Could not generate report draft. Please try again.";
+    if (copyReportBtn) copyReportBtn.disabled = true;
+  }
+}
+
+async function copyReportToClipboard() {
+  if (!reportOutput || !reportOutput.value.trim()) return;
+
+  try {
+    await navigator.clipboard.writeText(reportOutput.value);
+    copyReportBtn.textContent = "Copied!";
+    setTimeout(() => {
+      copyReportBtn.textContent = "Copy Report";
+    }, 1500);
+  } catch (err) {
+    console.error(err);
+    reportOutput.select();
+    document.execCommand("copy");
+    copyReportBtn.textContent = "Copied!";
+    setTimeout(() => {
+      copyReportBtn.textContent = "Copy Report";
+    }, 1500);
+  }
+}
+
 if (chatForm) {
   chatForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -176,6 +236,18 @@ chips.forEach((chip) => {
     await sendChatMessage(prompt);
   });
 });
+
+if (generateReportBtn) {
+  generateReportBtn.addEventListener("click", async () => {
+    await generateReportDraft();
+  });
+}
+
+if (copyReportBtn) {
+  copyReportBtn.addEventListener("click", async () => {
+    await copyReportToClipboard();
+  });
+}
 
 function escapeHtml(value) {
   return String(value)
