@@ -1,0 +1,118 @@
+.arx-report-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 24px;
+}
+
+.arx-report-dialog {
+  width: min(1100px, 96vw);
+  max-height: 92vh;
+  overflow: hidden;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+}
+
+.arx-report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  padding: 20px 24px 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.arx-report-header h2 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.arx-report-subtitle {
+  margin: 6px 0 0;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.arx-close-btn {
+  border: 0;
+  background: transparent;
+  font-size: 2rem;
+  cursor: pointer;
+  color: #475569;
+}
+
+.arx-report-tabs {
+  display: flex;
+  gap: 10px;
+  padding: 16px 24px 8px;
+}
+
+.arx-tab {
+  border: 0;
+  background: #e2e8f0;
+  color: #0f172a;
+  padding: 10px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.arx-tab.active {
+  background: #0f172a;
+  color: #fff;
+}
+
+.arx-report-actions {
+  display: flex;
+  gap: 10px;
+  padding: 0 24px 16px;
+}
+
+.arx-action-btn {
+  border: 0;
+  background: #2563eb;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.arx-report-body {
+  padding: 0 24px 24px;
+  overflow: auto;
+}
+
+.arx-report-panel {
+  display: none;
+  line-height: 1.65;
+  color: #0f172a;
+}
+
+.arx-report-panel.active {
+  display: block;
+}
+
+.arx-report-panel pre {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 16px;
+  border-radius: 10px;
+  overflow: auto;
+}
+
+.arx-report-panel h1,
+.arx-report-panel h2,
+.arx-report-panel h3 {
+  color: #111827;
+}
+
+.arx-report-panel ul {
+  padding-left: 20px;
+}

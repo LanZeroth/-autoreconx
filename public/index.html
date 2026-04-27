@@ -58,6 +58,40 @@
         </table>
       </div>
     </section>
+
+    <section class="card assistant-panel">
+      <div class="row between">
+        <h2>AutoReconX Assistant</h2>
+        <span class="assistant-badge">Beta</span>
+      </div>
+
+      <p class="assistant-subtext">
+        Ask for scan summaries, remediation guidance, or help troubleshooting the local demo target.
+      </p>
+
+      <div class="assistant-chips">
+        <button class="chip" data-prompt="Summarize this scan">Summarize scan</button>
+        <button class="chip" data-prompt="Why did I get 0 findings?">Why 0 findings?</button>
+        <button class="chip" data-prompt="Explain this finding in simple terms">Explain finding</button>
+        <button class="chip" data-prompt="How do I remediate this safely?">Remediation</button>
+      </div>
+
+      <div id="chatMessages" class="chat-messages">
+        <div class="msg assistant">
+          Hi, I’m your AutoReconX Assistant. I can explain findings, summarize scan results, and help with local setup.
+        </div>
+      </div>
+
+      <form id="chatForm" class="chat-form">
+        <input
+          id="chatInput"
+          type="text"
+          placeholder="Ask about findings, remediation, or setup..."
+          autocomplete="off"
+        />
+        <button type="submit">Send</button>
+      </form>
+    </section>
   </div>
 
   <script src="/app.js"></script>

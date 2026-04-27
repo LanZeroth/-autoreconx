@@ -1,6 +1,9 @@
 let currentScanId = null;
 let poller = null;
 
+window.latestFindings = [];
+window.latestTargetUrl = "";
+
 const scanBtn = document.getElementById("scanBtn");
 const exportBtn = document.getElementById("exportBtn");
 const targetInput = document.getElementById("targetInput");
@@ -8,6 +11,11 @@ const progressFill = document.getElementById("progressFill");
 const progressText = document.getElementById("progressText");
 const resultsBody = document.getElementById("resultsBody");
 const findingCount = document.getElementById("findingCount");
+
+const chatForm = document.getElementById("chatForm");
+const chatInput = document.getElementById("chatInput");
+const chatMessages = document.getElementById("chatMessages");
+const chips = document.querySelectorAll(".chip");
 
 scanBtn.addEventListener("click", async () => {
   const target = targetInput.value.trim();
@@ -19,6 +27,8 @@ scanBtn.addEventListener("click", async () => {
 
   resetUI();
   scanBtn.disabled = true;
+  window.latestTargetUrl = target;
+  window.latestFindings = [];
 
   try {
     const res = await fetch("/api/scan", {
@@ -66,7 +76,10 @@ function startPolling() {
 
       if (data.status === "done") {
         clearInterval(poller);
-        renderResults(data.results || []);
+        const results = data.results || [];
+        renderResults(results);
+        window.latestFindings = results;
+        window.latestTargetUrl = data.target || targetInput.value.trim();
         exportBtn.disabled = false;
         scanBtn.disabled = false;
       }
@@ -109,6 +122,60 @@ function renderResults(results) {
     resultsBody.appendChild(row);
   }
 }
+
+function appendMessage(role, text) {
+  if (!chatMessages) return;
+
+  const el = document.createElement("div");
+  el.className = `msg ${role}`;
+  el.textContent = text;
+  chatMessages.appendChild(el);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+async function sendChatMessage(message) {
+  appendMessage("user", message);
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message,
+        findings: window.latestFindings || [],
+        targetUrl: window.latestTargetUrl || targetInput.value.trim()
+      })
+    });
+
+    const data = await res.json();
+    appendMessage("assistant", data.reply || "No response returned.");
+  } catch (err) {
+    console.error(err);
+    appendMessage("assistant", "Could not reach the assistant. Please try again.");
+  }
+}
+
+if (chatForm) {
+  chatForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const message = chatInput.value.trim();
+
+    if (!message) return;
+
+    chatInput.value = "";
+    await sendChatMessage(message);
+  });
+}
+
+chips.forEach((chip) => {
+  chip.addEventListener("click", async () => {
+    const prompt = chip.dataset.prompt;
+    if (!prompt) return;
+    await sendChatMessage(prompt);
+  });
+});
 
 function escapeHtml(value) {
   return String(value)
