@@ -61,9 +61,9 @@ async function testSsrf(endpoint) {
   if (urlParams.length === 0) return findings;
 
   for (const param of urlParams) {
-    for (const payload of ssrfPayloads.urls) {
+    for (const payloadValue of ssrfPayloads.urls) {
       const mutated = new URL(endpoint.url);
-      mutated.searchParams.set(param, payload.value);
+      mutated.searchParams.set(param, payloadValue);
 
       const startMs  = Date.now();
       const response = await safeGet(mutated.toString());
@@ -83,11 +83,11 @@ async function testSsrf(endpoint) {
       const errorSignal = FETCH_ERROR_SIGNALS.find(s => bodyLower.includes(s));
 
       // ── Signal 4: Unexpected success on internal URL ───────────
-      const internalPayload = payload.value.includes("127.0.0.1") ||
-                              payload.value.includes("localhost") ||
-                              payload.value.includes("169.254") ||
-                              payload.value.includes("192.168") ||
-                              payload.value.includes("10.0");
+      const internalPayload = payloadValue.includes("127.0.0.1") ||
+                              payloadValue.includes("localhost") ||
+                              payloadValue.includes("169.254") ||
+                              payloadValue.includes("192.168") ||
+                              payloadValue.includes("10.0");
       const unexpectedSuccess = internalPayload && response.status === 200;
 
       const triggered = bodySignal || errorSignal || unexpectedSuccess;
@@ -105,14 +105,14 @@ async function testSsrf(endpoint) {
         type:            "SSRF",
         endpoint:        mutated.toString(),
         param,
-        payload:         payload.value,
-        payloadLabel:    payload.label,
+        payload:         payloadValue,
         signals: {
           bodySignal:      bodySignal || null,
           timingAnomaly:   timingAnomaly ? `${elapsed}ms` : null,
           errorSignal:     errorSignal  || null,
           unexpectedSuccess
         },
+        snippet:         response.body.slice(0, 200),
         responseSnippet: response.body.slice(0, 200),
         severity:        scoreSeverity("SSRF", response.status, response.body, confidence),
         confidence
