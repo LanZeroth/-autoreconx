@@ -67,6 +67,7 @@ async function testXss(endpoint) {
         payload:         tagged,
         payloadTemplate: payload,
         context,           // "html-body" | "attribute" | "script-block" | "unknown"
+        snippet,
         responseSnippet: snippet,
         severity:        scoreSeverity("XSS", response.status, response.body, confidence),
         confidence

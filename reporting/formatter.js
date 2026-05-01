@@ -21,7 +21,7 @@ function normalizeFinding(finding = {}) {
     type: finding.type || "Unknown",
     endpoint: finding.endpoint || finding.url || "Unknown",
     payload: finding.payload || "",
-    snippet: finding.snippet || "",
+    snippet: finding.snippet || finding.responseSnippet || finding.baselineSnippet || "",
     severity: normalizeSeverity(finding.severity),
     cwe: finding.cwe || inferCwe(finding),
     description:

@@ -73,6 +73,7 @@ async function testIdor(endpoint) {
         originalValue:   value,
         mutatedValue:    mutatedId,
         payload:         `${key}=${mutatedId} (was ${value})`,
+        snippet:         response.body.slice(0, 200),
         responseSnippet: response.body.slice(0, 200),
         baselineSnippet: baseline.body.slice(0, 200),
         sizeDelta,

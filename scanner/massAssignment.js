@@ -1,127 +1,97 @@
 /**
- * AutoReconX — Severity Scorer
+ * AutoReconX — Mass Assignment Scanner
  *
- * Old problem: severity was hardcoded to demo-specific strings
- * ("internal-demo-resource", "autoreconx") — useless against real targets.
- *
- * New approach: rule-based scoring using transferable signals.
- *
- * Scoring model (mirrors CVSS-lite logic used in bug bounty triage):
- *   Base score per vuln type
- *   + confidence modifier
- *   + data sensitivity signals in response
- *   + endpoint sensitivity (admin, auth, payment routes)
- *
- * Output: "Critical" | "High" | "Medium" | "Low"
+ * Real bug bounty technique:
+ *   1. Identify POST/PUT/PATCH endpoints that accept JSON
+ *   2. Inject "hidden" administrative fields (isAdmin, role, tier, etc.)
+ *   3. Check if the server accepts them (20x status)
+ *   4. Check if the injected fields are REFLECTED in the response
+ *      → Reflection in the response is a strong signal that the
+ *        backend's data model was overwritten.
  */
 
-// ── Sensitivity signals in response body ──────────────────────
-// Presence of these in the mutated response = more severe
-const SENSITIVE_DATA_PATTERNS = [
-  /password/i,
-  /passwd/i,
-  /secret/i,
-  /api[_-]?key/i,
-  /auth[_-]?token/i,
-  /access[_-]?token/i,
-  /private[_-]?key/i,
-  /credit[_-]?card/i,
-  /ssn/i,
-  /social.security/i,
-  /\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b/,  // Card number pattern
-  /root:x:0:0/,                                  // /etc/passwd
-  /ami-id/i,                                     // AWS metadata
-  /instance-id/i,
-  /iam\/security/i,
-];
+const axios = require("axios");
+const massPayloads = require("../payloads/mass.json");
+const { scoreSeverity } = require("./severity");
 
-// ── High-value endpoint indicators ────────────────────────────
-const SENSITIVE_ENDPOINT_PATTERNS = [
-  /\/admin/i,
-  /\/internal/i,
-  /\/payment/i,
-  /\/billing/i,
-  /\/checkout/i,
-  /\/auth/i,
-  /\/login/i,
-  /\/token/i,
-  /\/secret/i,
-  /\/config/i,
-  /\/settings/i,
-  /\/manage/i,
-];
+async function testMassAssignment(endpoint) {
+  const findings = [];
 
-/**
- * @param {string} type        - Vulnerability class
- * @param {number} status      - HTTP status of the finding response
- * @param {string} body        - Response body text
- * @param {string} confidence  - "Confirmed" | "Likely" | "Potential"
- * @param {string} [endpoint]  - Endpoint URL (optional, for context bonus)
- * @returns {"Critical"|"High"|"Medium"|"Low"}
- */
-function scoreSeverity(type, status, body = "", confidence = "Potential", endpoint = "") {
-  let score = baseScore(type);
+  // Only test state-changing methods that typically handle JSON/forms
+  const targetMethods = ["POST", "PUT", "PATCH"];
+  if (!targetMethods.includes(endpoint.method.toUpperCase())) return findings;
 
-  // ── Confidence modifier ──────────────────────────────────────
-  if (confidence === "Confirmed") score += 2;
-  else if (confidence === "Likely")   score += 1;
-  else if (confidence === "Potential") score -= 1;
+  const extraFields = massPayloads.extraFields || {};
+  const fieldKeys   = Object.keys(extraFields);
 
-  // ── Sensitive data in response → raise the stakes ────────────
-  const bodyText = String(body);
-  if (SENSITIVE_DATA_PATTERNS.some(p => p.test(bodyText))) {
-    score += 2;
-  }
+  if (fieldKeys.length === 0) return findings;
 
-  // ── Sensitive endpoint → higher impact ───────────────────────
-  if (endpoint && SENSITIVE_ENDPOINT_PATTERNS.some(p => p.test(endpoint))) {
-    score += 1;
-  }
-
-  // ── Type-specific modifiers ───────────────────────────────────
-
-  if (type === "SSRF") {
-    // Blind SSRF (no content leaked) is still High
-    // SSRF with internal content is Critical
-    if (/ami-id|instance-id|root:x:0:0|computeMetadata/i.test(bodyText)) score += 2;
-  }
-
-  if (type === "IDOR") {
-    // Accessing another user's data = confirmed data breach
-    if (status === 200) score += 1;
-    // Admin data visible = Critical
-    if (/admin|superuser|role.*admin/i.test(bodyText)) score += 2;
-  }
-
-  if (type === "XSS") {
-    // Stored XSS > Reflected (we can't distinguish here, but context helps)
-    if (/script-block|attribute/i.test(confidence)) score += 1;
-  }
-
-  if (type === "Mass Assignment") {
-    // Privilege escalation confirmed
-    if (/admin.*true|isAdmin.*true|role.*admin/i.test(bodyText)) score += 2;
-  }
-
-  // ── Map numeric score to label ─────────────────────────────────
-  return scoreToLabel(score);
-}
-
-function baseScore(type) {
-  const bases = {
-    "SSRF":            7,
-    "IDOR":            6,
-    "Mass Assignment": 6,
-    "XSS":             5,
+  // ── Step 1: Send request with injected fields ──────────────────
+  // We send a minimal valid-looking JSON object with our payloads
+  const payload = {
+    ...extraFields,
+    email: "test-mass@autoreconx.io",
+    name:  "AutoReconX Test"
   };
-  return bases[type] || 4;
+
+  const response = await safeRequest(endpoint.url, endpoint.method, payload);
+  if (!response) return findings;
+
+  // ── Step 2: Analyze response for success and reflection ────────
+  const isSuccess = response.status >= 200 && response.status < 300;
+  if (!isSuccess) return findings;
+
+  const bodyLower = response.body.toLowerCase();
+
+  // Look for any of our injected values in the response body
+  const reflectedFields = fieldKeys.filter(key => {
+    const val = String(extraFields[key]).toLowerCase();
+    // Match both "key": "value" and "key": value (for booleans)
+    return bodyLower.includes(`"${key.toLowerCase()}"`) && bodyLower.includes(val);
+  });
+
+  if (reflectedFields.length === 0) return findings;
+
+  // ── Step 3: Determine confidence ──────────────────────────────
+  // High confidence if multiple sensitive fields reflected in a 20x response
+  const confidence = reflectedFields.length >= 2 ? "Confirmed" : "Likely";
+
+  findings.push({
+    type:            "Mass Assignment",
+    endpoint:        endpoint.url,
+    method:          endpoint.method,
+    payload:         JSON.stringify(extraFields),
+    reflectedFields,
+    snippet:         response.body.slice(0, 250),
+    responseSnippet: response.body.slice(0, 250),
+    severity:        scoreSeverity("Mass Assignment", response.status, response.body, confidence),
+    confidence
+  });
+
+  return findings;
 }
 
-function scoreToLabel(score) {
-  if (score >= 10) return "Critical";
-  if (score >= 7)  return "High";
-  if (score >= 4)  return "Medium";
-  return "Low";
+async function safeRequest(url, method, data) {
+  try {
+    const res = await axios({
+      url,
+      method,
+      data,
+      validateStatus: () => true,
+      timeout: 5000,
+      headers: {
+        "User-Agent": "AutoReconX/1.0 Security Scanner",
+        "Content-Type": "application/json"
+      }
+    });
+    const body = typeof res.data === "string"
+      ? res.data
+      : JSON.stringify(res.data);
+    return { status: res.status, body };
+  } catch (err) {
+    console.warn(`[MassAssignment] Request failed for ${url}: ${err.message}`);
+    return null;
+  }
 }
 
-module.exports = { scoreSeverity, SENSITIVE_DATA_PATTERNS };
+module.exports = { testMassAssignment };
